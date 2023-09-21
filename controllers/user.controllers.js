@@ -1,14 +1,14 @@
-const upload = require("../middleware/upload.middleware.js")
 const userModel = require("../schema/user.model.js")
-const AppError = require("../util/appError")
+const AppError = require("../utils/appError.js")
 const emailValidator = require('email-validator')
-const cloudinary = require('cloudinary')
+const { getStorage, ref, uploadBytes, getDownloadURL } = require("firebase/storage");
 
 exports.usercreate= async (req,res,next) =>
 {
     try {
         const { name,email,password} =req.body
-        if(! name || ! email || ! password )
+        const avatar = req.file
+        if(! name || ! email || ! password)
         {
             return next(new AppError("All fields are required",400))
         }
@@ -17,60 +17,50 @@ exports.usercreate= async (req,res,next) =>
 
         if(userExists)
         {
-            return next(new AppError("User already register",400,"User already exists"))
+            return next(new AppError("User already register",400,))
         }
 
         if(!emailValidator.validate(email))
         {
             return next(new AppError("Email format is invalid",400))
         }
-        const user = await userModel.create({name,email,password, avatar: {
-            public_id:"dummy",
-            secure_id :"dummy"
-        }})
-
-        if(user)
+        const user = await userModel.create({name,email,password, avatar: 
+                    "https://firebasestorage.googleapis.com/v0/b/lms-project-ba70d.appspot.com/o/EmptyProfile.jpg?alt=media&token=493572be-200e-438e-afb9-cfb28070e55a"})
+    
+        if(!user)
         {
-            res.status(200).json({
-                success:true,
-                message:"User created successfully"
-            })
-        }
-        else {
-            return next(new AppError("User failed to register",400))
-        }
-       
-    //    const token = await user.jwtToken()
-    //    console.log(token);
-    //    const cookieOptions = {
-    //     maxAge : 24*60*60*1000,
-    //     httpOnly : true
-    //    }
-    //    res.cookie('token',token,cookieOptions)
-    //    res.status(200).json({
-    //     message:"sucessfully created cookie"
-    //    })
-    // avatar: {
-    //     public_id:"email",
-    //     sucure_id :"email2"
-    // }
-        if(req.file)
-        try {
-            const result = await cloudinary.v2.uploader.upload(req.file.path,{
-                folder :'lms'
-            })
-            if(result)
-            {
-                user.avatar.public_id = result.avatar.public_id  
-                user.avatar.sucure_id = result.avatar.sucure_id
-            }
-        } catch (error) {
-            return next(new AppError(error.message,500))
+            return next(
+                new AppError('User registration failed, please try again later', 400));
         }
 
-    } catch (error) {
-        return next(new AppError(error.message,500))
-    }
+        if(avatar)
+        {
+            const storage = getStorage();
+            const storageRef = ref(storage, `Profile/${avatar.originalname}`);
+            const metadata = {contentType: 'image/jpeg', };
+            await uploadBytes(storageRef, avatar.buffer,metadata)
+            const downloadURL = await getDownloadURL(storageRef);
+            user.avatar = downloadURL
+        }
+        
+        await user.save();
+        
+        const token = await user.jwtToken()
+        user.password = undefined;
+        const cookieOption = {
+            maxAge: 24* 60 * 60 *1000,
+            httpOnly:true
+        }
+        res.cookie("token",token,cookieOption)
+        
+        res.status(201).json({
+            success: true,
+            message: 'User registered successfully',
+            user,
+        });
+        } catch(error) {
+            return next(new AppError(error.message,400))
+        }
 }
 
 
@@ -127,7 +117,6 @@ exports.userdetails = async (req,res,next) => {
     } catch (error) {
         return next(new AppError(error.message,500))
     }
-
 }
 
 exports.userlogout = (req,res,next) => 

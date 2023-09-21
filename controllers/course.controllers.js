@@ -1,6 +1,6 @@
 
 const courseModel = require("../schema/course.model");
-const AppError = require("../util/appError");
+const AppError = require("../utils/appError");
 
 exports.create= async (req,res,next) =>
 {

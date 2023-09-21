@@ -1,6 +1,6 @@
 const jsonwebtoken = require('jsonwebtoken')
-const AppError = require("../util/appError.js")
-const userAuth = (req,res,next) => {
+const AppError = require("../utils/appError.js")
+const isLoggedIn = (req,res,next) => {
     try {
         const getToken = req.cookies.token || null
         if(getToken)
@@ -41,5 +41,5 @@ const authorizationroles = (...roles) => (req,res,next) => {
 
 
 
-module.exports = {userAuth
+module.exports = {isLoggedIn
 , authorizationroles }

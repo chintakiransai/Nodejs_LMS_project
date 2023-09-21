@@ -1,16 +1,11 @@
 const app = require("./app");
 const env =require('dotenv').config()
+const firebase = require('./firebase')
 
-app.listen(process.env.port,()=>
+app.listen(process.env.PORT,async ()=>
 {
     console.log("Running Port 8080");
 })
 
+firebase
 
-const cloudinary = require('cloudinary')
-          
-cloudinary.config({ 
-  cloud_name: 'dkhxhhv5d', 
-  api_key: '115926822494289', 
-  api_secret: '***************************' 
-});

@@ -17,6 +17,12 @@ app.use(express.json())
 app.use(express.urlencoded({extended:true}))
 app.use(cookieParser())
 
+app.use('/avatar', express.static('uploads'))
+
+
+// const miscRoutes = require('./routes/miscellaneous.routes');
+// app.use('/misc', miscRoutes);
+
 app.use('/user',userRoutes)
 app.use('/course',courseRoutes)
 app.all('*',(req,res)=> {
