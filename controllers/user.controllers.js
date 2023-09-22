@@ -1,6 +1,8 @@
 const userModel = require("../schema/user.model.js")
 const AppError = require("../utils/appError.js")
 const emailValidator = require('email-validator')
+const sendEmail = require('../utils/sendEmail.js')
+
 const { getStorage, ref, uploadBytes, getDownloadURL } = require("firebase/storage");
 
 exports.usercreate= async (req,res,next) =>
@@ -46,12 +48,12 @@ exports.usercreate= async (req,res,next) =>
         await user.save();
         
         const token = await user.jwtToken()
-        user.password = undefined;
         const cookieOption = {
             maxAge: 24* 60 * 60 *1000,
             httpOnly:true
         }
         res.cookie("token",token,cookieOption)
+        user.password = undefined
         
         res.status(201).json({
             success: true,
@@ -71,31 +73,33 @@ exports.userlogin = async (req,res,next) => {
     {
         next(new AppError("All fields are required",400))
     }
-    const data = await userModel.findOne({email}).select('+password')
-    if(!data)
+    const user = await userModel.findOne({email}).select('+password')
+    if(!user)
     {
         next(new AppError("email has not register",400))
     }
     
-    const userMatch =await data.comparePass(password)
-    if(!userMatch || !data)
+    const userMatch =await user.comparePass(password)
+    if(!userMatch || !user)
     {
         next(new AppError("Incorrect password",400))
     }
-    else {
-        const token =await data.jwtToken()
+        await user.save()
+
+        const token =await user.jwtToken()
         const cookieOption = {
             maxAge: 24* 60 * 60 *1000,
             httpOnly:true
         }
         res.cookie("token",token,cookieOption)
 
+        user.password = undefined
+
         res.status(200).json({
             success:true,
             message:"User login successfully",
-            data
+            user
            })
-    }
     } catch (error) {
             return next(new AppError(error.message,500))
     }
@@ -111,6 +115,7 @@ exports.userdetails = async (req,res,next) => {
         else {
             await userModel.findById(userdetails)
             res.status(200).json({
+                success: true,
                 message:"User fetched details successfully"
         })
     }
@@ -124,9 +129,39 @@ exports.userlogout = (req,res,next) =>
     try {
         res.cookie("token",null,0)
         res.status(200).json({
+            success: true,
             message:"User logout successfully"
            })
     } catch (error) {
+        return next(new AppError(error.message,500))
+    }
+}
+
+exports.forgetPassword = async (req,res,next) => {
+    try {
+        const {email} = req.body
+        if(!email) {
+            next(new AppError("Email field is required",400))
+        }
+        const user = await userModel.findOne({email})
+        if(!user) {
+            next(new AppError("Email not registered",400))
+        }
+        const resetToken = await user.generatePasswordResetToken()
+        await user.save();
+        const frontendUrl="http://localhost:5173"
+        const resetPasswordUrl = `${frontendUrl}/reset-password/${resetToken}`
+        const subject = "Password Reset"
+        const message =`You can reset your password by clicking <a href=${resetPasswordUrl} target="_blank">Reset your password</a>\nIf the above link does not work for some reason then copy paste this link in new tab ${resetPasswordUrl}.\n If you have not requested this, kindly ignore.`
+        await sendEmail(email,subject,message)
+        res.status(200).json({
+            success: true,
+            message: `Reset password token has been sent to ${email} successfully`,
+          });
+    } catch (error) {
+        // user.forgotPasswordToken = undefined;
+        // user.forgotPasswordExpiry = undefined;
+        // await user.save();
         return next(new AppError(error.message,500))
     }
 }
@@ -150,7 +185,9 @@ exports.userpassupdate = async (req,res,next) => {
         {
             userExists.password = newpassword
             await userExists.save()
+            user.password = undefined
             res.status(200).json({
+                success: true,
                 message:"User password changed successfully"
                })
         }

@@ -6,6 +6,7 @@ const courseRoutes = require('./routes/course.routes');
 const errorMiddleware = require('./middleware/error.middleware');
 const app = express();
 const cors = require("cors")
+const contactRoutes = require('./routes/miscellaneous.routes')
 
 dbToConnect()
 
@@ -25,6 +26,7 @@ app.use('/avatar', express.static('uploads'))
 
 app.use('/user',userRoutes)
 app.use('/course',courseRoutes)
+app.use('/contact',contactRoutes)
 app.all('*',(req,res)=> {
     res.status(400).json({
         message:`can't find ${req.originalUrl}`

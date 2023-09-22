@@ -29,7 +29,9 @@ const userSchema = mongoose.Schema({
         type:String,
         enum:['USER','ADMIN'],
         default:'USER'
-    }
+    },
+    forgotPasswordToken: String,
+    forgotPasswordExpiry: Date,
 },
 {
     timestamps:true
@@ -53,8 +55,10 @@ userSchema.methods = {
     },
     comparePass: async function (plainpassword) {
     return await bcrypt.compare(plainpassword,this.password)
-    }
+    },
+    
 }
+
 
 
 const userModel = mongoose.model('User',userSchema)
