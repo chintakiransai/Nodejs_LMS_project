@@ -2,6 +2,7 @@ const userModel = require("../schema/user.model.js")
 const AppError = require("../utils/appError.js")
 const emailValidator = require('email-validator')
 const sendEmail = require('../utils/sendEmail.js')
+const crypto = require('crypto')
 
 const { getStorage, ref, uploadBytes, getDownloadURL } = require("firebase/storage");
 
@@ -162,6 +163,39 @@ exports.forgetPassword = async (req,res,next) => {
         // user.forgotPasswordToken = undefined;
         // user.forgotPasswordExpiry = undefined;
         // await user.save();
+        return next(new AppError(error.message,500))
+    }
+}
+
+
+exports.resetPassword = async(req,res,next) => {
+    try {
+        const {password} = req.body
+        const {resetToken} = req.params
+        if(!password)
+        {
+            next(new AppError("Password is required",400))
+        }
+        const forgotPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex')
+        const user = await userModel.findOne(
+            {
+                forgotPasswordToken,
+                forgotPasswordExpiry: {$gt:Date.now()},   
+            })
+            console.log(forgotPasswordToken);
+        if(!user)
+        {
+            return next(new AppError("Token is invalid or expired, please try again",400))
+        }
+        user.password = password
+        user.forgotPasswordToken= undefined
+        user.forgotPasswordExpiry= undefined
+        user.save()
+        res.status(200).json({
+            success: true,
+            message:"User password changed successfully"
+           })
+    } catch (error) {
         return next(new AppError(error.message,500))
     }
 }

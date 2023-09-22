@@ -1,6 +1,6 @@
 const express =require('express')
 const userRoutes = express.Router()
-const { usercreate, userlogin, userdetails, userlogout, userpassupdate, forgetPassword} = require('../controllers/user.controllers')
+const { usercreate, userlogin, userdetails, userlogout, userpassupdate, forgetPassword, resetPassword} = require('../controllers/user.controllers')
 const {isLoggedIn} = require('../middleware/auth.middleware.js')
 
 const multer = require('multer')
@@ -10,8 +10,9 @@ userRoutes.post('/usercreate',upload.single('avatar'),usercreate)
 userRoutes.post('/userlogin',userlogin)
 userRoutes.get('/userdetails',isLoggedIn,userdetails)
 userRoutes.get('/userlogout',userlogout)
-userRoutes.post('/userpassupdate',isLoggedIn,userpassupdate)
 userRoutes.post('/reset',forgetPassword)
+userRoutes.post('/reset/:resetToken',resetPassword)
+userRoutes.post('/userpassupdate',isLoggedIn,userpassupdate)
 
 
 
