@@ -4,7 +4,7 @@ const emailValidator = require('email-validator')
 const sendEmail = require('../utils/sendEmail.js')
 const crypto = require('crypto')
 
-const { getStorage, ref, uploadBytes, getDownloadURL } = require("firebase/storage");
+const { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } = require("firebase/storage");
 
 exports.usercreate= async (req,res,next) =>
 {
@@ -27,8 +27,7 @@ exports.usercreate= async (req,res,next) =>
         {
             return next(new AppError("Email format is invalid",400))
         }
-        const user = await userModel.create({name,email,password, avatar: 
-                    "https://firebasestorage.googleapis.com/v0/b/lms-project-ba70d.appspot.com/o/EmptyProfile.jpg?alt=media&token=493572be-200e-438e-afb9-cfb28070e55a"})
+        const user = await userModel.create({name,email,password, avatar:null})
     
         if(!user)
         {
@@ -201,7 +200,7 @@ exports.resetPassword = async(req,res,next) => {
 }
 
 
-exports.userpassupdate = async (req,res,next) => {
+exports.changePassword = async (req,res,next) => {
     try {
         const { oldpassword, newpassword } =req.body 
         if(!oldpassword || !newpassword )
@@ -229,6 +228,46 @@ exports.userpassupdate = async (req,res,next) => {
             next(new AppError("Incorrect password",400))
         }
 
+    } catch (error) {
+        return next(new AppError(error.message,500))
+    }
+}
+
+exports.updateProfile = async(req,res,next) => {
+    try {
+        const {name} = req.body
+        const {id} = req.user
+        
+        const user = await userModel.findById(id)
+
+        if(!user)
+        {
+            return next(new AppError('Invalid user id or user does not exist'));
+        }
+
+        if(name) {
+            user.name = name
+        }
+        
+        if(req.file)
+        {   
+            const oldImage = user.avatar
+            const storage = getStorage();
+            const storageRef = ref(storage, `Profile/${req.file.originalname}`);
+            const metadata = {contentType: 'image/jpeg', };
+            await uploadBytes(storageRef, req.file.buffer,metadata)
+            const downloadURL = await getDownloadURL(storageRef);
+            user.avatar = downloadURL
+            const oldStorageRef = ref(storage, oldImage);
+            await deleteObject(oldStorageRef);
+        }
+        
+        await user.save();
+        res.status(200).json({
+            success: true,
+            message:"User details updated successfully"
+           })
+        
     } catch (error) {
         return next(new AppError(error.message,500))
     }

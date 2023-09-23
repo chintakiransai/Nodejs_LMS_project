@@ -1,6 +1,6 @@
 const express =require('express')
 const userRoutes = express.Router()
-const { usercreate, userlogin, userdetails, userlogout, userpassupdate, forgetPassword, resetPassword} = require('../controllers/user.controllers')
+const { usercreate, userlogin, userdetails, userlogout, forgetPassword, resetPassword, changePassword, updateProfile} = require('../controllers/user.controllers')
 const {isLoggedIn} = require('../middleware/auth.middleware.js')
 
 const multer = require('multer')
@@ -12,9 +12,7 @@ userRoutes.get('/userdetails',isLoggedIn,userdetails)
 userRoutes.get('/userlogout',userlogout)
 userRoutes.post('/reset',forgetPassword)
 userRoutes.post('/reset/:resetToken',resetPassword)
-userRoutes.post('/userpassupdate',isLoggedIn,userpassupdate)
-
-
-
+userRoutes.post('/changePassword',isLoggedIn,changePassword)
+userRoutes.put('/updateProfile',isLoggedIn,upload.single('avatar'),updateProfile)
 
 module.exports=userRoutes
