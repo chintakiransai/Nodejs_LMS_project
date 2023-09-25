@@ -33,6 +33,7 @@ const userSchema = mongoose.Schema({
     },
     forgotPasswordToken: String,
     forgotPasswordExpiry: Date,
+    
 },
 {
     timestamps:true
@@ -52,7 +53,7 @@ userSchema.pre('save', async function (next)
 
 userSchema.methods = {
     jwtToken()  {
-        return jwt.sign({id:this._id,name:this.name,email:this.email,role:this.role},'SECERT',{expiresIn:'24h'})
+        return jwt.sign({id:this._id,name:this.name,email:this.email,role:this.role,subscription:this.subscription},'SECERT',{expiresIn:'24h'})
     },
     comparePass: async function (plainpassword) {
     return await bcrypt.compare(plainpassword,this.password)

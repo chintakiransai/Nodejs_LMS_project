@@ -1,13 +1,21 @@
 const express = require('express')
-const { create, getcourses, deletecourses, updatecourses, createlectures } = require('../controllers/course.controllers')
+const { createCourse, getAllCourses, createLecture, getLecturesByCourseId, updateCourse, deleteCourse, deleteLecture  } = require('../controllers/course.controllers')
 const {authorizationroles, isLoggedIn }  = require('../middleware/auth.middleware.js')
 const courseRoutes = express.Router()
 
-courseRoutes.post('/create',isLoggedIn,authorizationroles('ADMIN'),create)
-courseRoutes.get('/getcourses',getcourses)
-courseRoutes.delete('/deletecourses/:courseid',deletecourses)
-courseRoutes.put('/updatecourses/:courseid',updatecourses)
+const multer = require('multer')
+const upload = multer({ storage: multer.memoryStorage() });
 
 
-courseRoutes.post('/createlectures/:courseid',createlectures)
+courseRoutes.route('/')
+.get(getAllCourses)
+.post(isLoggedIn, authorizationroles('ADMIN'), upload.single('thumbnail'), createCourse)
+.delete(deleteLecture)
+
+courseRoutes.route('/:courseId')
+.post(isLoggedIn, authorizationroles('ADMIN'), upload.single('lecture'),createLecture)
+.get(isLoggedIn, getLecturesByCourseId)
+.put(isLoggedIn, authorizationroles('ADMIN'),updateCourse)
+.delete(isLoggedIn, authorizationroles('ADMIN'),deleteCourse)
+
 module.exports = courseRoutes

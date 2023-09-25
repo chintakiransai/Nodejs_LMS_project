@@ -6,11 +6,10 @@ const crypto = require('crypto')
 
 const { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } = require("firebase/storage");
 
-exports.usercreate= async (req,res,next) =>
+exports.userCreate= async (req,res,next) =>
 {
     try {
         const { name,email,password} =req.body
-        const avatar = req.file
         if(! name || ! email || ! password)
         {
             return next(new AppError("All fields are required",400))
@@ -35,12 +34,12 @@ exports.usercreate= async (req,res,next) =>
                 new AppError('User registration failed, please try again later', 400));
         }
 
-        if(avatar)
+        if(req.file)
         {
             const storage = getStorage();
-            const storageRef = ref(storage, `Profile/${avatar.originalname}`);
+            const storageRef = ref(storage, `LMSProject/UserProfiles/${Date.now()}${req.file.originalname}`);
             const metadata = {contentType: 'image/jpeg', };
-            await uploadBytes(storageRef, avatar.buffer,metadata)
+            await uploadBytes(storageRef, req.file.buffer,metadata)
             const downloadURL = await getDownloadURL(storageRef);
             user.avatar = downloadURL
         }
@@ -66,23 +65,23 @@ exports.usercreate= async (req,res,next) =>
 }
 
 
-exports.userlogin = async (req,res,next) => {
+exports.userLogin = async (req,res,next) => {
     try {
         const {email, password} = req.body
     if(!email || !password )
     {
-        next(new AppError("All fields are required",400))
+        return next(new AppError("All fields are required",400))
     }
     const user = await userModel.findOne({email}).select('+password')
     if(!user)
     {
-        next(new AppError("email has not register",400))
+        return next(new AppError("email has not register",400))
     }
     
     const userMatch =await user.comparePass(password)
     if(!userMatch || !user)
     {
-        next(new AppError("Incorrect password",400))
+        return next(new AppError("Incorrect password",400))
     }
         await user.save()
 
@@ -101,16 +100,16 @@ exports.userlogin = async (req,res,next) => {
             user
            })
     } catch (error) {
-            return next(new AppError(error.message,500))
+        return next(new AppError(error.message,500))
     }
 }
 
-exports.userdetails = async (req,res,next) => {
+exports.userDetails = async (req,res,next) => {
     try {
         const userdetails = req.user.id
         if(!userdetails)
         {
-            next(new AppError("user not logged in",400))
+            return next(new AppError("user not logged in",400))
         }
         else {
             await userModel.findById(userdetails)
@@ -124,7 +123,7 @@ exports.userdetails = async (req,res,next) => {
     }
 }
 
-exports.userlogout = (req,res,next) => 
+exports.userLogout = (req,res,next) => 
 {
     try {
         res.cookie("token",null,0)
@@ -141,11 +140,11 @@ exports.forgetPassword = async (req,res,next) => {
     try {
         const {email} = req.body
         if(!email) {
-            next(new AppError("Email field is required",400))
+            return next(new AppError("Email field is required",400))
         }
         const user = await userModel.findOne({email})
         if(!user) {
-            next(new AppError("Email not registered",400))
+            return next(new AppError("Email not registered",400))
         }
         const resetToken = await user.generatePasswordResetToken()
         await user.save();
@@ -173,7 +172,7 @@ exports.resetPassword = async(req,res,next) => {
         const {resetToken} = req.params
         if(!password)
         {
-            next(new AppError("Password is required",400))
+            return next(new AppError("Password is required",400))
         }
         const forgotPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex')
         const user = await userModel.findOne(
@@ -205,13 +204,13 @@ exports.changePassword = async (req,res,next) => {
         const { oldpassword, newpassword } =req.body 
         if(!oldpassword || !newpassword )
         {
-            next(new AppError("All fields are required",400))
+            return next(new AppError("All fields are required",400))
         }
         const { id } =req.user
         const userExists = await userModel.findById(id).select('+password')
         if(!userExists)
         {
-            next(new AppError("User doesn't exists",400))
+            return next(new AppError("User doesn't exists",400))
         }
         const isMatch = await userExists.comparePass(oldpassword)
         if(isMatch)
@@ -225,7 +224,7 @@ exports.changePassword = async (req,res,next) => {
                })
         }
         else {
-            next(new AppError("Incorrect password",400))
+            return next(new AppError("Incorrect password",400))
         }
 
     } catch (error) {
@@ -253,7 +252,7 @@ exports.updateProfile = async(req,res,next) => {
         {   
             const oldImage = user.avatar
             const storage = getStorage();
-            const storageRef = ref(storage, `Profile/${req.file.originalname}`);
+            const storageRef = ref(storage, `LMSProject/UserProfiles/${Date.now()}${req.file.originalname}`);
             const metadata = {contentType: 'image/jpeg', };
             await uploadBytes(storageRef, req.file.buffer,metadata)
             const downloadURL = await getDownloadURL(storageRef);
