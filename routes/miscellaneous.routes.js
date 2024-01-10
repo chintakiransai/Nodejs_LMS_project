@@ -1,18 +1,11 @@
 const express = require('express')
 const contactRoutes = express.Router()
-const contactUs = require('../controllers/miscellaneous.controller')
-// import {
-//   contactUs,
-//   userStats,
-// } from '../controllers/miscellaneous.controller.js';
-// import { authorizeRoles, isLoggedIn } from '../middlewares/auth.middleware.js';
+const {contactUs,userStats} = require('../controllers/miscellaneous.controller')
+const {authorizationroles, isLoggedIn }  = require('../middleware/auth.middleware.js')
 
 
-
-// {{URL}}/api/v1/
 contactRoutes.post('/contactus',contactUs)
-// router
-//   .route('/admin/stats/users')
-  // .get(isLoggedIn, authorizeRoles('ADMIN'), userStats);
+contactRoutes.get('/user/stats',isLoggedIn,authorizationroles('ADMIN'),userStats)
+
 
   module.exports = contactRoutes;

@@ -114,9 +114,9 @@ exports.deleteCourse = async (req,res,next) => {
 
 exports.createLecture = async(req,res,next) => {
     try {
+        
         const { title, description } = req.body
         const { courseId } = req.params
-
         if(!title || !description) {
            return next(new AppError("All fields are required",400))
         }
@@ -143,7 +143,8 @@ exports.createLecture = async(req,res,next) => {
 
         res.status(200).json({
             success:true,
-            message:"Lecture created successfully"
+            message:"Lecture created successfully",
+            Lecture: course.lectures,
         }) 
     } catch (error) {
         return next(new AppError(error.message,500))
@@ -158,15 +159,16 @@ exports.getLecturesByCourseId = async(req,res,next) => {
         if(!course) {
            return next(AppError("Course not found",400))
         }
-
         res.status(200).json({
             success:true,
             message:"Course lectures fetched successfully",
             Lectures: course.lectures,
+            
         })
     } catch (error) {
         return next(new AppError(error.message,500))
     }
+    
 }
 
 
@@ -206,7 +208,8 @@ exports.deleteLecture = async(req,res,next) => {
 
         res.status(200).json({
             success:true,
-            message:"Lecture deleted successfully"
+            message:"Lecture deleted successfully",
+            Lecture: course.lectures,
         }) 
     } catch (error) {
         return next(new AppError(error.message,500))

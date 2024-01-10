@@ -13,7 +13,7 @@ userRoutes.get('/userLogout',userLogout)
 userRoutes.post('/reset',forgetPassword)
 userRoutes.post('/reset/:resetToken',resetPassword)
 userRoutes.post('/changePassword',isLoggedIn,changePassword)
-userRoutes.put('/updateProfile',updateProfile)
+userRoutes.put('/updateProfile',isLoggedIn,upload.single('avatar'),updateProfile)
 
 
 module.exports=userRoutes

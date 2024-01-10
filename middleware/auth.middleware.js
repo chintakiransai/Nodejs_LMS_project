@@ -39,6 +39,20 @@ const authorizationroles = (...roles) => (req,res,next) => {
     }
 }
 
+const authorizeSubscription = (req,res,next) => {
+    try {
+        const user = req.user
+        if(user.role !=="ADMIN" && user.subscription.status !== 'active' ) {
+            return next(new AppError("You do not have permission to access",403))
+        }
+        else {
+            next()
+        }
+    } catch (error) {
+        return next(new AppError(error.message,500))
+    }
+}
+
 
 module.exports = {isLoggedIn
-, authorizationroles }
+, authorizationroles, authorizeSubscription  }

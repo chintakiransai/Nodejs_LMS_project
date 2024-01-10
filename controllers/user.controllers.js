@@ -86,9 +86,9 @@ exports.userLogin = async (req,res,next) => {
         await user.save()
 
         const token =await user.jwtToken()
-        const cookieOption = {
+        const cookieOption = { 
             maxAge: 24* 60 * 60 *1000,
-            httpOnly:true
+            httpOnly:true,
         }
         res.cookie("token",token,cookieOption)
 
@@ -112,10 +112,12 @@ exports.userDetails = async (req,res,next) => {
             return next(new AppError("user not logged in",400))
         }
         else {
-            await userModel.findById(userdetails)
+            const user = await userModel.findById(userdetails)
+            user.password = undefined
             res.status(200).json({
                 success: true,
-                message:"User fetched details successfully"
+                message:"User fetched details successfully",
+                user,
         })
     }
     } catch (error) {
@@ -149,7 +151,7 @@ exports.forgetPassword = async (req,res,next) => {
         const resetToken = await user.generatePasswordResetToken()
         await user.save();
         const frontendUrl="http://localhost:5173"
-        const resetPasswordUrl = `${frontendUrl}/reset-password/${resetToken}`
+        const resetPasswordUrl = `${frontendUrl}/resetPassword/${resetToken}`
         const subject = "Password Reset"
         const message =`You can reset your password by clicking <a href=${resetPasswordUrl} target="_blank">Reset your password</a>\nIf the above link does not work for some reason then copy paste this link in new tab ${resetPasswordUrl}.\n If you have not requested this, kindly ignore.`
         await sendEmail(email,subject,message)
@@ -180,7 +182,6 @@ exports.resetPassword = async(req,res,next) => {
                 forgotPasswordToken,
                 forgotPasswordExpiry: {$gt:Date.now()},   
             })
-            console.log(forgotPasswordToken);
         if(!user)
         {
             return next(new AppError("Token is invalid or expired, please try again",400))
@@ -201,8 +202,8 @@ exports.resetPassword = async(req,res,next) => {
 
 exports.changePassword = async (req,res,next) => {
     try {
-        const { oldpassword, newpassword } =req.body 
-        if(!oldpassword || !newpassword )
+        const { oldPassword, newPassword } =req.body 
+        if(!oldPassword || !newPassword )
         {
             return next(new AppError("All fields are required",400))
         }
@@ -212,12 +213,12 @@ exports.changePassword = async (req,res,next) => {
         {
             return next(new AppError("User doesn't exists",400))
         }
-        const isMatch = await userExists.comparePass(oldpassword)
+        const isMatch = await userExists.comparePass(oldPassword)
         if(isMatch)
         {
-            userExists.password = newpassword
+            userExists.password = newPassword
             await userExists.save()
-            user.password = undefined
+            userExists.password = undefined
             res.status(200).json({
                 success: true,
                 message:"User password changed successfully"
@@ -236,7 +237,6 @@ exports.updateProfile = async(req,res,next) => {
     try {
         const {name} = req.body
         const {id} = req.user
-        
         const user = await userModel.findById(id)
 
         if(!user)
@@ -257,14 +257,17 @@ exports.updateProfile = async(req,res,next) => {
             await uploadBytes(storageRef, req.file.buffer,metadata)
             const downloadURL = await getDownloadURL(storageRef);
             user.avatar = downloadURL
-            const oldStorageRef = ref(storage, oldImage);
-            await deleteObject(oldStorageRef);
+            if(oldImage) {
+                const oldStorageRef = ref(storage, oldImage);
+                await deleteObject(oldStorageRef);
+            }
         }
-        
         await user.save();
+        user.password = undefined
         res.status(200).json({
             success: true,
-            message:"User details updated successfully"
+            message:"User details updated successfully",
+            user,
            })
         
     } catch (error) {
