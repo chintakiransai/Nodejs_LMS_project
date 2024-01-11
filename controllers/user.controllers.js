@@ -83,7 +83,6 @@ exports.userLogin = async (req,res,next) => {
     {
         return next(new AppError("Incorrect password",400))
     }
-        await user.save()
 
         const token =await user.jwtToken()
         const cookieOption = { 

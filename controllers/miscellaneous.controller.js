@@ -28,12 +28,12 @@ const contactUs = async (req, res, next) => {
 const userStats = async (req,res,next) => {
     try {
       const allUsersCount = await userModel.countDocuments()
-      const subscriptionCount = await userModel.countDocuments({'subscription.status':'active'})
+      const subscribedCount = await userModel.countDocuments({'subscription.status':'active'})
       res.status(200).json({
         success: true,
         message: 'All registered users count',
         allUsersCount,
-        subscriptionCount,
+        subscribedCount,
       });
     } catch (error) {
       return next(new AppError(error.message, 400));

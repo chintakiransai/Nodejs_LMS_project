@@ -27,7 +27,7 @@ app.use('/avatar', express.static('uploads'))
 
 app.use('/user',userRoutes)
 app.use('/course',courseRoutes)
-
+app.use('/payment',paymentRoutes)
 app.use('/contact',contactRoutes)
 app.all('*',(req,res)=> {
     res.status(400).json({

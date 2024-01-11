@@ -100,16 +100,45 @@ exports.cancelSubscription = async(req,res,next) => {
         try {
             const subscriptionDetails = await razorpay.subscriptions.fetch(subscriptionId);
 
-            if (subscriptionDetails.status === 'completed') {
-                return next(new AppError('Subscription is already completed. Cancellation not allowed', 400));
-            }
+            // if (subscriptionDetails.status === 'completed') {
+            //     return next(new AppError('Subscription is already completed. Cancellation not allowed', 400));
+            // }
 
             const subscription=await razorpay.subscriptions.cancel(subscriptionId)
             user.subscription.status = subscription.status
             await user.save();
         } catch (error) {
-            return next(new AppError("hello"));
+            return next(new AppError(error.error.description, error.statusCode));
         }
+
+        const payment = await paymentModel.findOne({
+            razorpay_subscription_id: subscriptionId,
+          });
+        
+          const timeSinceSubscribed = Date.now() - payment.createdAt;
+        
+          const refundPeriod = 14 * 24 * 60 * 60 * 1000;
+        
+          if (refundPeriod <= timeSinceSubscribed) {
+            return next(
+              new AppError(
+                'Refund period is over, so there will not be any refunds provided.',
+                400
+              )
+            );
+          }
+        
+          await razorpay.payments.refund(payment.razorpay_payment_id, {
+            speed: 'optimum', 
+          });
+        
+          user.subscription.id = undefined; 
+          user.subscription.status = undefined; 
+        
+          await user.save();
+          await payment.remove();
+
+
         res.status(201).json({
             success: true,
             message: 'subscription Cancelled successfully',
@@ -123,11 +152,12 @@ exports.cancelSubscription = async(req,res,next) => {
 
 exports.allPayments = async(req,res,next) => {
     try {
-        const {count} = req.query
-        const subscription = await razorpay.subscriptions.all({
-            count: count || 10
+        const {count, skip} = req.query
+        const allPayments = await razorpay.subscriptions.all({
+            count: count || 10,
+            skip : skip || 10
         })
-
+        
   const monthNames = [
     'January',
     'February',
@@ -182,7 +212,6 @@ exports.allPayments = async(req,res,next) => {
         res.status(201).json({
             success: true,
             message: 'Get payment status',
-            subscription,
             allPayments,
             finalMonths,
             monthlySalesRecord,
